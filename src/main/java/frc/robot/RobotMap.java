@@ -106,8 +106,9 @@ public class RobotMap {
 
   //[I]ntake
   public static boolean I_INTAKE_ENABLED = true;
-  public static int I_MOTOR_LEFT = RoboRioMap.CAN_10;
-  public static int I_MOTOR_RIGHT = RoboRioMap.CAN_9;
+  public static int I_MOTOR_LEFT = RoboRioMap.PWM_1;
+  public static int I_MOTOR_RIGHT = RoboRioMap.PWM_2;
+  public static int I_MOTOR_MAIN = RoboRioMap.PWM_2;
 
   // [L]ights
   public static int L_LEDS = RoboRioMap.PWM_0;

@@ -1,155 +1,152 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
 
-import com.revrobotics.CANSparkBase.IdleMode;
+import com.pathplanner.lib.util.PIDConstants;
 
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 
-/**
- * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
- * constants. This class should not be used for any other purpose. All constants should be declared
- * globally (i.e. public static). Do not put anything functional in this class.
- *
- * <p>It is advised to statically import this class (or one of its inner classes) wherever the
- * constants are needed, to reduce verbosity.
- */
-public final class Constants {
-    // Defines Drive constants
-    public static final double kMaxSpeedMetersPerSecond = 4.8;
-    public static final double kMaxAngularSpeed = 2 * Math.PI; // radians per second
+public class Constants {
 
-    public static final double kDirectionSlewRate = 1.2; // radians per second
-    public static final double kMagnitudeSlewRate = 1.8; // percent per second (1 = 100%)
-    public static final double kRotationalSlewRate = 2.0; // percent per second (1 = 100%)
+    public static final class CANDevices {
+        // FIXME: Set these CAN ID values to the those of your robot, or change your CAN ID's to match this convention.
+        public static final int powerDistributionHubId = 0;
 
-    // Chassis configuration
-    // Distance between centers of right and left wheels on robot
-    public static final double kTrackWidth = Units.inchesToMeters(RobotMap.R_TRACK_WIDTH_INCHES);
-    // Distance between front and back wheels on robot
-    public static final double kWheelBase = Units.inchesToMeters(RobotMap.R_WHEEL_BASE_INCHES);
-    public static final SwerveDriveKinematics kDriveKinematics = new SwerveDriveKinematics(
-        new Translation2d(kWheelBase / 2, kTrackWidth / 2),
-        new Translation2d(kWheelBase / 2, -kTrackWidth / 2),
-        new Translation2d(-kWheelBase / 2, kTrackWidth / 2),
-        new Translation2d(-kWheelBase / 2, -kTrackWidth / 2));
+        public static final int imuId = 11;
 
-    // Angular offsets of the modules relative to the chassis in radians
-    public static final double kFrontLeftChassisAngularOffset = -Math.PI / 2;
-    public static final double kFrontRightChassisAngularOffset = 0;
-    public static final double kBackLeftChassisAngularOffset = Math.PI;
-    public static final double kBackRightChassisAngularOffset = Math.PI / 2;
+        public static final int frontLeftCanCoderId = 10; //???Need to figure out ID
+        public static final int frontLeftSteerMtrId = 2;  //7 and 8 are one of the wheels, might not be frontLeft
+        public static final int frontLeftDriveMtrId = 1;
 
-    public static final boolean kGyroReversed = false;
+        //Need to update id values below.  Steer motors are odd, drive motors are even
 
-    // Defines Neo Motor constant
-    public static final double kFreeSpeedRpm = 5676;
+        public static final int frontRightCanCoderId = 20;
+        public static final int frontRightSteerMtrId = 4;
+        public static final int frontRightDriveMtrId = 3;
 
-    // Defines Swerve Module constants
-    public static final int kDrivingMotorPinionTeeth = 14;
+        public static final int backLeftCanCoderId = 30;
+        public static final int backLeftSteerMtrId = 6;
+        public static final int backLeftDriveMtrId = 5;
 
-    // Invert the turning encoder, since the output shaft rotates in the opposite direction of
-    // the steering motor in the MAXSwerve Module.
-    public static final boolean kTurningEncoderInverted = true;
+        public static final int backRightCanCoderId = 40;
+        public static final int backRightSteerMtrId = 8;
+        public static final int backRightDriveMtrId = 7;
+    }
 
-    // Calculations required for driving motor conversion factors and feed forward
-    public static final double kDrivingMotorFreeSpeedRps = kFreeSpeedRpm / 60;
-    public static final double kWheelDiameterMeters = 0.0762;
-    public static final double kWheelCircumferenceMeters = kWheelDiameterMeters * Math.PI;
-    // 45 teeth on the wheel's bevel gear, 22 teeth on the first-stage spur gear, 15 teeth on the bevel pinion
-    public static final double kDrivingMotorReduction = (45.0 * 22) / (kDrivingMotorPinionTeeth * 15);
-    public static final double kDriveWheelFreeSpeedRps = (kDrivingMotorFreeSpeedRps * kWheelCircumferenceMeters)
-        / kDrivingMotorReduction;
+    public static final class ControllerConstants {
+        public static final int driverGamepadPort = 0;
 
-    public static final double kDrivingEncoderPositionFactor = (kWheelDiameterMeters * Math.PI)
-        / kDrivingMotorReduction; // meters
-    public static final double kDrivingEncoderVelocityFactor = ((kWheelDiameterMeters * Math.PI)
-        / kDrivingMotorReduction) / 60.0; // meters per second
+        public static final double joystickDeadband = 0.15;
 
-    public static final double kTurningEncoderPositionFactor = (2 * Math.PI); // radians
-    public static final double kTurningEncoderVelocityFactor = (2 * Math.PI) / 60.0; // radians per second
+        public static final double triggerPressedThreshhold = 0.25;
+    }
+    
+    public static final class DriveConstants {
+        /**
+         * The track width from wheel center to wheel center.
+         */
+        // FIXME: Make sure to measure from the center of each wheel
+        public static final double trackWidth = Units.inchesToMeters(24);
 
-    public static final double kTurningEncoderPositionPIDMinInput = 0; // radians
-    public static final double kTurningEncoderPositionPIDMaxInput = kTurningEncoderPositionFactor; // radians
+        /**
+         * The track length from wheel center to wheel center.
+         */
+        // FIXME: mature sure to measure from the center of each wheel
+        public static final double wheelBase = Units.inchesToMeters(24);
 
-    public static final double kDrivingP = 0.04;
-    public static final double kDrivingI = 0;
-    public static final double kDrivingD = 0;
-    public static final double kDrivingFF = 1 / kDriveWheelFreeSpeedRps;
-    public static final double kDrivingMinOutput = -1;
-    public static final double kDrivingMaxOutput = 1;
+        /**
+         * The SwerveDriveKinematics used for control and odometry.
+         */
+        public static final SwerveDriveKinematics kinematics = 
+            new SwerveDriveKinematics(
+                new Translation2d(trackWidth / 2.0, wheelBase / 2.0),  // front left
+                new Translation2d(trackWidth / 2.0, -wheelBase / 2.0), // front right
+                new Translation2d(-trackWidth / 2.0, wheelBase / 2.0), // back left
+                new Translation2d(-trackWidth / 2.0, -wheelBase / 2.0) // back right
+            );
 
-    public static final double kTurningP = 1;
-    public static final double kTurningI = 0;
-    public static final double kTurningD = 0;
-    public static final double kTurningFF = 0;
-    public static final double kTurningMinOutput = -1;
-    public static final double kTurningMaxOutput = 1;
+        /**
+         * The gear reduction from the drive motor to the wheel.
+         * 
+         * The drive gear ratios for the different levels can be found from the chart at
+         * swervedrivespecialties.com/products/mk41-swerve-module.
+         */
+        // FIXME: This is the gear ratio for L3 modules.
+        public static final double driveMtrGearReduction = (14.0 / 50.0) * (28.0 / 16.0) * (15.0 / 45.0);
 
-    public static final IdleMode kDrivingMotorIdleMode = IdleMode.kBrake;
-    public static final IdleMode kTurningMotorIdleMode = IdleMode.kBrake;
+        /**
+         * The gear reduction from the steer motor to the wheel.
+         */
+        public static final double steerMtrGearReduction = (14.0 / 50.0) * (10.0 / 60.0);
 
-    public static final int kDrivingMotorCurrentLimit = 50; // amps
-    public static final int kTurningMotorCurrentLimit = 20; // amps
+        public static final double wheelRadiusMeters = Units.inchesToMeters(2);
+        public static final double wheelCircumferenceMeters = 2.0 * wheelRadiusMeters * Math.PI;
 
-    public static final int kDriverControllerPort = 0;
-    public static final double kDriveDeadband = 0.05;
+        public static final double driveMetersPerEncRev = wheelCircumferenceMeters * driveMtrGearReduction;
+        public static final double driveMetersPerSecPerRPM = driveMetersPerEncRev / 60.0;
 
-    // Defines Intake constants
-    public static final double kIntakeSpeed = -0.3;
+        public static final double steerRadiansPerEncRev = 2 * Math.PI * DriveConstants.steerMtrGearReduction;
 
-    // Defines Lights constants
-    public static final int LED_LENGTH = 35; // number of LEDs
-    // Defines Shooter constants
-    public static final boolean kEnableShooterPIDTuning = false;
+        public static final double kFreeMetersPerSecond = 5600 * driveMetersPerSecPerRPM;
 
-    public static final double LEFT_SHOOTER_SPEED = 0.42;
-    public static final double RIGHT_SHOOTER_SPEED = 0.92;
+        public static final double steerMtrMaxSpeedRadPerSec = 2.0;
+        public static final double steerMtrMaxAccelRadPerSecSq = 1.0;
 
-    //Vision Constants
-    public static final boolean kVisionEnabled = false;
-    public static final String kCameraName = "Arducam_OV9281_USB_Camera";
-    // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
-    public static final Transform3d kRobotToCam =
-            new Transform3d(new Translation3d(0.5, 0.0, 0.5), 
-                new Rotation3d(0, Units.degreesToRadians(30), 0));
+        public static final double maxDriveSpeedMetersPerSec = 5.0;
 
-    // The layout of the AprilTags on the field
-    public static final AprilTagFieldLayout kTagLayout =
-            AprilTagFields.kDefaultField.loadAprilTagLayoutField();
+        /**
+         * The rate the robot will spin with full Rot command.
+         */
+        public static final double maxTurnRateRadiansPerSec = 2.0 * Math.PI;
 
-    // The standard deviations of our vision estimated poses, which affect correction rate
-    // (Fake values. Experiment and determine estimation noise on an actual robot.)
-    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(4, 4, 8);
-    public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(0.5, 0.5, 1);
+        // FIXME: Set line up the swerve modules and set these values.
 
-    //Autonomous driving constants
-    public static final double kMaxAccelerationMetersPerSecondSquared = 3;
-    public static final double kMaxAngularSpeedRadiansPerSecond = Math.PI;
-    public static final double kMaxAngularSpeedRadiansPerSecondSquared = Math.PI;
+        // The bolt heads should be pointing to the left. These values are subtracted from the CANCoder reading,
+        // so they should be the raw CANCoder value when set straight. These values should be between 0 and 360
+        // degrees.
 
-    public static final double kPXController = 1;
-    public static final double kPYController = 1;
-    public static final double kPThetaController = 0.9;
-    public static final double kIThetaController = 0.1;
-    public static final double kDThetaController = 0.05;
-    public static final double kThetaTolerance = 0.1;//radians
+        // FIXME: Don't quote me on that they should be pointing to the left. (I'm almost positive though.) If 
+        // the drive base drives 180 off from the commanded direction, flip these readings 180 degrees and change
+        // the comment above for future reference.
+        public static final Rotation2d frontLeftModOffset = Rotation2d.fromDegrees(13.184); 
+        public static final Rotation2d frontRightModOffset = Rotation2d.fromDegrees(-42.715 + 180.0);
+        public static final Rotation2d backLeftModOffset = Rotation2d.fromDegrees(87.275 + 180.0);
+        public static final Rotation2d backRightModOffset = Rotation2d.fromDegrees(45.703 + 180.0); 
 
-    // Constraint for the motion profiled robot angle controller
-    public static final TrapezoidProfile.Constraints kThetaControllerConstraints = new TrapezoidProfile.Constraints(
-        kMaxAngularSpeedRadiansPerSecond, kMaxAngularSpeedRadiansPerSecondSquared);
+        // FIXME: You may want to change this value.
+        public static final int driveCurrentLimitAmps = 40;
+        
+        // FIXME: These values should be fine, but if the modules start to rattle you may want to play with the steer PID values.
+        public static final double drivekP = 0.005;
+        public static final double drivekD = 0.0;
+
+        public static final double steerkP = 0.37431;
+        public static final double steerkD = 0.27186;
+
+        public static final double ksVolts = 0.667;
+        public static final double kvVoltSecsPerMeter = 2.44;
+        public static final double kaVoltSecsPerMeterSq = 0.0;
+
+        public static final SimpleMotorFeedforward driveFF = new SimpleMotorFeedforward(ksVolts, kvVoltSecsPerMeter, kaVoltSecsPerMeterSq);
+    }
+
+    public static final class AutoConstants {
+        /**
+         * The default maximum speed of the robot in auto. Can be overridden by the FollowTrajectoryCmd Command.
+         */
+        public static final double maxVelMetersPerSec = 3.25;
+
+        // FIXME: These drive and rotation PID constants most likely need to be tuned for better accuracy.
+        public static final double drivekP = 12.8;
+        public static final double drivekD = 0.085;
+
+        public static final PIDConstants driveConstants = new PIDConstants(drivekD, drivekD);
+
+        public static final double rotkP = 1.27;
+        public static final double rotkD = 0.5;
+
+        public static final PIDConstants rotConstants = new PIDConstants(rotkP, rotkD);
+    }
 }

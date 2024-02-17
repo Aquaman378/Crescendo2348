@@ -1,117 +1,103 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
 
-import frc.robot.commands.Drive.SwerveDrive;
-import frc.robot.commands.Intake.Consume;
-import frc.robot.commands.Intake.Expel;
-import frc.robot.commands.Lights.BlinkLights;
-import frc.robot.commands.Lights.DisableLights;
-import frc.robot.commands.Lights.EnableLights;
-import frc.robot.commands.Lights.MakeRainbow;
-import frc.robot.commands.Lights.MoveLights;
-import frc.robot.commands.Shooter.SpinUpShooter;
-import frc.robot.subsystems.Drive;
-import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Lights;
-import frc.robot.subsystems.Shooter;
-import frc.robot.subsystems.Vision;
-import frc.robot.testingdashboard.TDSendable;
-import frc.robot.testingdashboard.TestingDashboard;
-
-import com.pathplanner.lib.auto.AutoBuilder;
-
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.Constants.ControllerConstants;
+import frc.robot.Constants.DriveConstants;
+import frc.robot.commands.auto.programs.ExampleAuto;
+import frc.robot.commands.drivetrain.ArcadeDriveCmd;
+import frc.robot.subsystems.ExampleSys;
+import frc.robot.subsystems.SwerveSys;
 
-/**
- * This class is where the bulk of the robot should be declared. Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
- * subsystems, commands, and trigger mappings) should be declared here.
- */
 public class RobotContainer {
-  // Handle to Operator Inputs
-  private OI m_oi;
-  private Vision m_Vision;
+    // Initialize subsystems.
+    private final SwerveSys swerveSys = new SwerveSys();
+    private final ExampleSys exampleSys = new ExampleSys();
 
-  // The robot's subsystems are defined here.
-  private final Drive m_robotDrive;
-  private final Intake m_intake;
-  private final Lights m_lights;
-  private final Shooter m_shooter;
+    // Initialize joysticks.
+    private final Joystick leftJoystick = new Joystick(0);
+    private final Joystick rightJoystick = new Joystick(1);
 
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
-  public RobotContainer() {
-    // load configuration
-    RobotMap.init();
-    // Configure the trigger/button bindings
-    configureBindings();
+    // Initialize auto selector.
+    SendableChooser<Command> autoSelector = new SendableChooser<Command>();
 
-    // Instantiate parameterized commands to register them with the testing dashboard.
-    // The first instance of a Command registers itself. No need to store the resulting
-    // objects.
+    public RobotContainer() {
+        SmartDashboard.putData("auto selector", autoSelector);
 
-    // Robot subsystems initialized and configured here
-    m_robotDrive = Drive.getInstance();
-    m_robotDrive.setDefaultCommand(new SwerveDrive());
+        // Add programs to auto selector.
+        autoSelector.setDefaultOption("Do Nothing", null);
+        autoSelector.addOption("Example Auto", new ExampleAuto(swerveSys, exampleSys));
 
-    m_intake = Intake.getInstance();
-
-    m_lights = Lights.getInstance();
-    m_lights.setDefaultCommand(new MoveLights());
-
-    m_shooter = Shooter.getInstance();
-
-    if(Constants.kVisionEnabled){
-      m_Vision = Vision.getInstance();
+        configDriverBindings();
     }
 
-    // Create Testing Dashboard
-    registerCommands();
-    TestingDashboard.getInstance().createTestingDashboard();
-  }
+    public void configDriverBindings() {
 
-  private static void registerCommands() {
-    // Intake commands
-    new Consume();
-    new Expel();
+        swerveSys.setDefaultCommand(new ArcadeDriveCmd(
+            () -> MathUtil.applyDeadband(leftJoystick.getY(), ControllerConstants.joystickDeadband),
+            () -> MathUtil.applyDeadband(leftJoystick.getX(), ControllerConstants.joystickDeadband),
+            () -> MathUtil.applyDeadband(rightJoystick.getX(), ControllerConstants.joystickDeadband),
+            true,
+            true,
+            swerveSys
+        )
+        );
 
-    // Lights commands
-    new BlinkLights();
-    new DisableLights();
-    new EnableLights();
-    new MakeRainbow();
-    new MoveLights();
+        if(rightJoystick.getTriggerPressed()) {
+            Commands.runOnce(() -> swerveSys.resetHeading());
+        }
 
-    // Shooter commands
-    // new SpinUpShooter();
-  }
+        //driverController.axisGreaterThan(XboxController.Axis.kLeftTrigger.value, ControllerConstants.triggerPressedThreshhold)
+        //    .whileTrue(Commands.runOnce(() -> swerveSys.lock()));
 
-  /**
-   * Use this method to define your trigger->command mappings. Triggers can be created via the
-   * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary
-   * predicate, or via the named factories in {@link
-   * edu.wpi.first.wpilibj2.command.button.CommandGenericHID}'s subclasses for {@link
-   * CommandXboxController Xbox}/{@link edu.wpi.first.wpilibj2.command.button.CommandPS4Controller
-   * PS4} controllers or {@link edu.wpi.first.wpilibj2.command.button.CommandJoystick Flight
-   * joysticks}.
-   */
-  private void configureBindings() {
-    m_oi = OI.getInstance();
-    m_oi.getDriverXboxController().getAButton();
-  }
+        /* Orignal code for xBox controller object
+        swerveSys.setDefaultCommand(new ArcadeDriveCmd(
+            () -> MathUtil.applyDeadband(driverController.getLeftY(), ControllerConstants.joystickDeadband),
+            () -> MathUtil.applyDeadband(driverController.getLeftX(), ControllerConstants.joystickDeadband),
+            () -> MathUtil.applyDeadband(driverController.getRightX(), ControllerConstants.joystickDeadband),
+            true,
+            true,
+            swerveSys
+        ));
+        
+        
+        // If you're more comfortable with it, you still can use the other way (i.e. new ResetHeadingCmd(swerveSys)).
+        // Otherwise I would delete those simple commands just to keep things clean.
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
-  public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
-    return AutoBuilder.buildAuto("autoCommand");
-  }
+        // Start is the "three lines" button. Back is the "windows" button.
+        driverController.start().onTrue(Commands.runOnce(() -> swerveSys.resetHeading()));
+
+        driverController.axisGreaterThan(XboxController.Axis.kLeftTrigger.value, ControllerConstants.triggerPressedThreshhold)
+            .whileTrue(Commands.runOnce(() -> swerveSys.lock()));
+            */
+    }
+
+    public Command getAutonomousCommand() {
+        return autoSelector.getSelected();
+    }
+
+    // For uniformity, any information sent to Shuffleboard/SmartDashboard should go here.
+    public void updateInterface() {
+        SmartDashboard.putNumber("heading degrees", swerveSys.getHeading().getDegrees());
+        SmartDashboard.putNumber("speed m/s", swerveSys.getAverageDriveVelocityMetersPerSec());
+
+        SmartDashboard.putNumber("FL angle degrees", swerveSys.getModuleStates()[0].angle.getDegrees());
+        SmartDashboard.putNumber("FR angle degrees", swerveSys.getModuleStates()[1].angle.getDegrees());
+        SmartDashboard.putNumber("BL angle degrees", swerveSys.getModuleStates()[2].angle.getDegrees());
+        SmartDashboard.putNumber("BR angle degrees", swerveSys.getModuleStates()[3].angle.getDegrees());
+
+        SmartDashboard.putNumber("FL raw CANCoder degrees", swerveSys.getCanCoderAngles()[0].getDegrees());
+        SmartDashboard.putNumber("FR raw CANCoder degrees", swerveSys.getCanCoderAngles()[1].getDegrees());
+        SmartDashboard.putNumber("BL raw CANCoder degrees", swerveSys.getCanCoderAngles()[2].getDegrees());
+        SmartDashboard.putNumber("BR raw CANCoder degrees", swerveSys.getCanCoderAngles()[3].getDegrees());
+
+        SmartDashboard.putNumber("FL offset CANCoder degrees", swerveSys.getCanCoderAngles()[0].getDegrees() - DriveConstants.frontLeftModOffset.getDegrees());
+        SmartDashboard.putNumber("FR offset CANCoder degrees", swerveSys.getCanCoderAngles()[1].getDegrees() - DriveConstants.frontRightModOffset.getDegrees());
+        SmartDashboard.putNumber("BL offset CANCoder degrees", swerveSys.getCanCoderAngles()[2].getDegrees() - DriveConstants.backLeftModOffset.getDegrees());
+        SmartDashboard.putNumber("BR offset CANCoder degrees", swerveSys.getCanCoderAngles()[3].getDegrees() - DriveConstants.backRightModOffset.getDegrees());
+    }
 }
